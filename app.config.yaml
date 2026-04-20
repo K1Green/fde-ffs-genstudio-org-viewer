@@ -1,0 +1,51 @@
+application:
+  actions: actions
+  web:
+    src: web-src
+  runtimeManifest:
+    packages:
+      genstudio-org-viewer:
+        license: Apache-2.0
+        actions:
+          auth:
+            function: actions/auth/index.js
+            web: 'yes'
+            runtime: nodejs:22
+            limits:
+              timeout: 10000
+              memory: 1024
+          save-mapping:
+            function: actions/save-mapping/index.js
+            web: 'yes'
+            runtime: nodejs:22
+            limits:
+              timeout: 10000
+              memory: 1024
+          load-mapping:
+            function: actions/load-mapping/index.js
+            web: 'yes'
+            runtime: nodejs:22
+            limits:
+              timeout: 10000
+              memory: 1024
+          list-mappings:
+            function: actions/list-mappings/index.js
+            web: 'yes'
+            runtime: nodejs:22
+            limits:
+              timeout: 10000
+              memory: 1024
+          delete-mapping:
+            function: actions/delete-mapping/index.js
+            web: 'yes'
+            runtime: nodejs:22
+            limits:
+              timeout: 10000
+              memory: 1024
+          set-password:
+            function: actions/set-password/index.js
+            web: 'yes'
+            runtime: nodejs:22
+            limits:
+              timeout: 10000
+              memory: 1024

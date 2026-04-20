@@ -1,0 +1,8 @@
+node_modules/
+dist/
+.env
+*-Stage.json
+*-Production.json
+*-Development.json
+*-QUAT.json
+.aio
