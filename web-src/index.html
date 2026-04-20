@@ -135,6 +135,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .ed.nm{font-size:13px;font-weight:500;}
 .ed.sb{font-size:11px;color:var(--text-muted);margin-top:1px;}
 .ed.rl,.ed.ps,.ed.rt{font-size:12px;}
+.ed.rl{white-space:normal;word-break:break-word;}
 .dot{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto;font-size:11px;font-weight:500;cursor:pointer;border:0.5px solid;user-select:none;transition:transform .1s;}
 .dot:hover{transform:scale(1.15);}
 .dot.off{background:var(--surface2);color:var(--text-hint);border-color:var(--border);}
@@ -375,7 +376,7 @@ async function loadAllMappings() {
 // ── Viewer app ───────────────────────────────────────────────
 const STEPS = [
   {key:'campaign',   label:'Campaign\nidentification'},
-  {key:'brands',     label:'Brands /\nproducts setup'},
+  {key:'brands',     label:'Brands /\nproducts /\npersonas'},
   {key:'assets',     label:'Add media\nassets'},
   {key:'template',   label:'Template\ndesign'},
   {key:'assemble',   label:'Assemble\nad variations'},
@@ -557,10 +558,10 @@ function renderTable() {
           <br><input class="ed sb" data-ui="${ui}" data-f="title" value="${esc(u.title)}" placeholder="Title">
         </div>
       </div></td>
-      <td class="rc"><input class="ed rl" data-ui="${ui}" data-f="role" value="${esc(u.role)}" placeholder="Role"></td>
+      <td class="tc"><div class="eb-dot${ebOn?'':' off'}" style="${ebSt}" data-ui="${ui}" data-f="economicBuyer">${ebOn?'Y':'–'}</div></td>
+      <td class="rc" style="white-space:normal;word-break:break-word;font-size:12px">${esc(u.role)||'—'}</td>
       <td class="rc"><input class="ed ps" data-ui="${ui}" data-f="persona" value="${esc(u.persona)}" placeholder="Persona"></td>
       ${dots}
-      <td class="tc"><div class="eb-dot${ebOn?'':' off'}" style="${ebSt}" data-ui="${ui}" data-f="economicBuyer">${ebOn?'Y':'–'}</div></td>
       <td class="rc"><input class="ed rt" data-ui="${ui}" data-f="reportsTo" value="${esc(u.reportsTo)}" placeholder="Reports to…"></td>
       <td><button class="btn btn-sm" style="color:#b0afa6;padding:2px 8px" data-del="${ui}">✕</button></td>
     </tr>`;
@@ -661,10 +662,10 @@ function renderTable() {
         <table class="mapping-table">
           <thead><tr>
             <th class="uc">User</th>
+            <th class="tc">Economic<br>buyer</th>
             <th class="rc">GenStudio role</th>
             <th class="rc">Persona</th>
             ${STEPS.map(s=>`<th class="tc">${esc(s.label).replace('\n','<br>')}</th>`).join('')}
-            <th class="tc">Economic<br>buyer</th>
             <th class="rc">Reports to</th>
             <th></th>
           </tr></thead>
