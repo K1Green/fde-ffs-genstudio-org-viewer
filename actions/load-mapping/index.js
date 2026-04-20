@@ -1,40 +1,36 @@
-const https = require('https')
+const { S3Client, GetObjectCommand } = require('@aws-sdk/client-s3')
 
-const PKG = 'genstudio-org-viewer'
-
-function owRequest (ns, auth) {
-  return new Promise((resolve, reject) => {
-    const authB64 = Buffer.from(auth).toString('base64')
-    https.get({
-      hostname: 'adobeioruntime.net',
-      path: `/api/v1/namespaces/${ns}/packages/${PKG}`,
-      headers: { Authorization: `Basic ${authB64}` }
-    }, res => {
-      let raw = ''
-      res.on('data', c => { raw += c })
-      res.on('end', () => { try { resolve(JSON.parse(raw)) } catch { resolve(null) } })
-    }).on('error', reject)
+function s3(params) {
+  return new S3Client({
+    region: params.AWS_REGION || 'us-east-1',
+    credentials: { accessKeyId: params.AWS_ACCESS_KEY_ID, secretAccessKey: params.AWS_SECRET_ACCESS_KEY }
   })
 }
 
-async function main (params) {
+async function streamToString(stream) {
+  const chunks = []
+  for await (const chunk of stream) chunks.push(chunk)
+  return Buffer.concat(chunks).toString('utf-8')
+}
+
+async function main(params) {
   try {
     const { key } = params
-    const ns = params.OW_NAMESPACE
-    const auth = params.OW_AUTH
     if (!key) return respond(400, { error: 'key is required' })
 
-    const pkg = await owRequest(ns, auth)
-    const annotations = pkg && pkg.annotations ? pkg.annotations : []
-    const entry = annotations.find(a => a.key === `data_${key}`)
-    const data = entry ? JSON.parse(entry.value) : null
+    const client = s3(params)
+    const bucket = params.AWS_BUCKET || 'genstudio-org-mapping'
+
+    const res = await client.send(new GetObjectCommand({ Bucket: bucket, Key: `mappings/${key}.json` }))
+    const data = JSON.parse(await streamToString(res.Body))
     return respond(200, { data })
   } catch (e) {
+    if (e.name === 'NoSuchKey') return respond(404, { data: null })
     return respond(500, { error: e.message })
   }
 }
 
-function respond (statusCode, body) {
+function respond(statusCode, body) {
   return { statusCode, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }
 }
 

@@ -14,34 +14,6 @@ application:
             limits:
               timeout: 10000
               memory: 1024
-          save-mapping:
-            function: actions/save-mapping/index.js
-            web: 'yes'
-            runtime: nodejs:22
-            limits:
-              timeout: 10000
-              memory: 1024
-          load-mapping:
-            function: actions/load-mapping/index.js
-            web: 'yes'
-            runtime: nodejs:22
-            limits:
-              timeout: 10000
-              memory: 1024
-          list-mappings:
-            function: actions/list-mappings/index.js
-            web: 'yes'
-            runtime: nodejs:22
-            limits:
-              timeout: 10000
-              memory: 1024
-          delete-mapping:
-            function: actions/delete-mapping/index.js
-            web: 'yes'
-            runtime: nodejs:22
-            limits:
-              timeout: 10000
-              memory: 1024
           set-password:
             function: actions/set-password/index.js
             web: 'yes'
@@ -49,3 +21,51 @@ application:
             limits:
               timeout: 10000
               memory: 1024
+          save-mapping:
+            function: actions/save-mapping/index.js
+            web: 'yes'
+            runtime: nodejs:22
+            limits:
+              timeout: 10000
+              memory: 1024
+            inputs:
+              AWS_ACCESS_KEY_ID: $AWS_ACCESS_KEY_ID
+              AWS_SECRET_ACCESS_KEY: $AWS_SECRET_ACCESS_KEY
+              AWS_REGION: $AWS_REGION
+              AWS_BUCKET: $AWS_BUCKET
+          load-mapping:
+            function: actions/load-mapping/index.js
+            web: 'yes'
+            runtime: nodejs:22
+            limits:
+              timeout: 10000
+              memory: 1024
+            inputs:
+              AWS_ACCESS_KEY_ID: $AWS_ACCESS_KEY_ID
+              AWS_SECRET_ACCESS_KEY: $AWS_SECRET_ACCESS_KEY
+              AWS_REGION: $AWS_REGION
+              AWS_BUCKET: $AWS_BUCKET
+          list-mappings:
+            function: actions/list-mappings/index.js
+            web: 'yes'
+            runtime: nodejs:22
+            limits:
+              timeout: 10000
+              memory: 1024
+            inputs:
+              AWS_ACCESS_KEY_ID: $AWS_ACCESS_KEY_ID
+              AWS_SECRET_ACCESS_KEY: $AWS_SECRET_ACCESS_KEY
+              AWS_REGION: $AWS_REGION
+              AWS_BUCKET: $AWS_BUCKET
+          delete-mapping:
+            function: actions/delete-mapping/index.js
+            web: 'yes'
+            runtime: nodejs:22
+            limits:
+              timeout: 10000
+              memory: 1024
+            inputs:
+              AWS_ACCESS_KEY_ID: $AWS_ACCESS_KEY_ID
+              AWS_SECRET_ACCESS_KEY: $AWS_SECRET_ACCESS_KEY
+              AWS_REGION: $AWS_REGION
+              AWS_BUCKET: $AWS_BUCKET

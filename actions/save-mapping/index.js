@@ -1,75 +1,55 @@
-const https = require('https')
+const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3')
 
-const PKG = 'genstudio-org-viewer'
-const INDEX_KEY = '__mappings_index'
+const BUCKET = process.env.AWS_BUCKET || 'genstudio-org-mapping'
 
-function owRequest (method, path, auth, body) {
-  return new Promise((resolve, reject) => {
-    const authB64 = Buffer.from(auth).toString('base64')
-    const data = body ? JSON.stringify(body) : null
-    const req = https.request({
-      hostname: 'adobeioruntime.net',
-      path: `/api/v1/namespaces/${path}`,
-      method,
-      headers: {
-        Authorization: `Basic ${authB64}`,
-        'Content-Type': 'application/json',
-        ...(data ? { 'Content-Length': Buffer.byteLength(data) } : {})
-      }
-    }, res => {
-      let raw = ''
-      res.on('data', c => { raw += c })
-      res.on('end', () => { try { resolve(JSON.parse(raw)) } catch { resolve(raw) } })
-    })
-    req.on('error', reject)
-    if (data) req.write(data)
-    req.end()
+function s3(params) {
+  return new S3Client({
+    region: params.AWS_REGION || 'us-east-1',
+    credentials: { accessKeyId: params.AWS_ACCESS_KEY_ID, secretAccessKey: params.AWS_SECRET_ACCESS_KEY }
   })
 }
 
-async function getPkg (ns, auth) {
-  return owRequest('GET', `${ns}/packages/${PKG}`, auth)
+function toCSV(data) {
+  const headers = ['Customer Name','USER Name','Title','Persona','GenStudio Role',
+    'Campaign identification','Brands / products setup','Add media assets','Template design',
+    'Assemble ad variations','Review & approval','Activation to channel','Insights dashboard',
+    'Economic Buyer (Y/N)','Reports To']
+  const esc = v => `"${String(v||'').replace(/"/g,'""')}"`
+  const rows = (data.users||[]).map(u => [
+    data.orgName, u.name, u.title, u.persona, u.role,
+    u.campaign?'Y':'N', u.brands?'Y':'N', u.assets?'Y':'N', u.template?'Y':'N',
+    u.assemble?'Y':'N', u.review?'Y':'N', u.activation?'Y':'N', u.insights?'Y':'N',
+    u.economicBuyer?'Y':'N', u.reportsTo
+  ].map(esc).join(','))
+  return [headers.join(','), ...rows].join('\n')
 }
 
-async function putAnnotations (ns, auth, annotations) {
-  return owRequest('PUT', `${ns}/packages/${PKG}?overwrite=true`, auth, { annotations })
-}
-
-async function main (params) {
+async function main(params) {
   try {
     const { key, data } = params
-    const ns = params.OW_NAMESPACE
-    const auth = params.OW_AUTH
     if (!key) return respond(400, { error: 'key is required' })
     if (data === undefined) return respond(400, { error: 'data is required' })
 
-    const pkg = await getPkg(ns, auth)
-    const annotations = pkg.annotations ? [...pkg.annotations] : []
+    const client = s3(params)
+    const bucket = params.AWS_BUCKET || BUCKET
 
-    const dataKey = `data_${key}`
-    const dataIdx = annotations.findIndex(a => a.key === dataKey)
-    const dataEntry = { key: dataKey, value: JSON.stringify(data) }
-    if (dataIdx >= 0) annotations[dataIdx] = dataEntry
-    else annotations.push(dataEntry)
+    await client.send(new PutObjectCommand({
+      Bucket: bucket, Key: `mappings/${key}.json`,
+      Body: JSON.stringify(data), ContentType: 'application/json'
+    }))
 
-    const indexIdx = annotations.findIndex(a => a.key === INDEX_KEY)
-    const index = indexIdx >= 0 ? JSON.parse(annotations[indexIdx].value) : []
-    const ei = index.findIndex(e => e.key === key)
-    const meta = { key, label: data.orgName || key, savedAt: new Date().toISOString() }
-    if (ei >= 0) index[ei] = meta
-    else index.push(meta)
-    const indexEntry = { key: INDEX_KEY, value: JSON.stringify(index) }
-    if (indexIdx >= 0) annotations[indexIdx] = indexEntry
-    else annotations.push(indexEntry)
+    await client.send(new PutObjectCommand({
+      Bucket: bucket, Key: `csv/${key}.csv`,
+      Body: toCSV(data), ContentType: 'text/csv'
+    }))
 
-    await putAnnotations(ns, auth, annotations)
     return respond(200, { success: true, key })
   } catch (e) {
     return respond(500, { error: e.message })
   }
 }
 
-function respond (statusCode, body) {
+function respond(statusCode, body) {
   return { statusCode, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }
 }
 

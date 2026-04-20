@@ -300,6 +300,7 @@ const ACTIONS_BASE = 'https://adobeioruntime.net/api/v1/web/3326322-genstudioorg
 let sessionToken = sessionStorage.getItem('viewer_token');
 if (sessionToken) {
   document.getElementById('pw-gate').classList.add('hidden');
+  document.addEventListener('DOMContentLoaded', loadAllMappings);
 }
 
 document.getElementById('pw-input').addEventListener('keydown', e => {
@@ -325,6 +326,7 @@ async function submitPassword() {
       sessionStorage.setItem('viewer_token', json.token);
       sessionToken = json.token;
       document.getElementById('pw-gate').classList.add('hidden');
+      loadAllMappings();
     } else {
       err.textContent = 'Incorrect password. Please try again.';
       document.getElementById('pw-input').value = '';
@@ -335,6 +337,38 @@ async function submitPassword() {
   } finally {
     btn.disabled = false;
     btn.textContent = 'Continue';
+  }
+}
+
+// ── Auto-load all mappings from S3 ───────────────────────────
+async function loadAllMappings() {
+  try {
+    const listRes = await fetch(`${ACTIONS_BASE}/list-mappings`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({}) });
+    const { mappings } = await listRes.json();
+    if (!mappings || mappings.length === 0) return;
+
+    // Load all in parallel (cap at 20 concurrent)
+    const results = await Promise.all(mappings.map(async m => {
+      const r = await fetch(`${ACTIONS_BASE}/load-mapping`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ key: m.key }) });
+      const { data } = await r.json();
+      if (!data) return null;
+      return {
+        fileName: m.key + '.json',
+        orgName: data.orgName || m.label,
+        users: data.users || [],
+        adobe: data.adobe || { salesSpecialist:'', accountAdNam:'', accountSc:'', pmmPm:'', csm:'', tam:'', sam:'', engagementManager:'', escalationOwner:'', engineering:'', pm:'', other:'', escalatedAccounts: false },
+        s3Key: m.key
+      };
+    }));
+
+    const loaded = results.filter(Boolean);
+    if (loaded.length === 0) return;
+    files.push(...loaded);
+    showMainView();
+    renderSidebar();
+    activate(0);
+  } catch (e) {
+    console.error('Failed to load mappings:', e);
   }
 }
 
@@ -1179,7 +1213,7 @@ async function openCloudLoadModal() {
   const list = document.getElementById('cloud-list');
   list.innerHTML = '<div class="cloud-empty">Loading…</div>';
   try {
-    const res = await fetch(`${ACTIONS_BASE}/list-mappings`);
+    const res = await fetch(`${ACTIONS_BASE}/list-mappings`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({}) });
     const json = await res.json();
     const mappings = json.mappings || [];
     if(!mappings.length) { list.innerHTML = '<div class="cloud-empty">No saved mappings yet.</div>'; return; }
@@ -1198,9 +1232,9 @@ async function openCloudLoadModal() {
 
 async function loadFromCloud(key) {
   try {
-    const res = await fetch(`${ACTIONS_BASE}/load-mapping?key=${encodeURIComponent(key)}`);
+    const res = await fetch(`${ACTIONS_BASE}/load-mapping`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ key }) });
     const json = await res.json();
-    if(!json.data) { alert('Not found'); return; }
+    if(!json.data) { showToast('Not found'); return; }
     const { orgName, users: u, adobe: a } = json.data;
     files.push({
       fileName: key + '.csv',
