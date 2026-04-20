@@ -6,3 +6,5 @@ dist/
 *-Development.json
 *-QUAT.json
 .aio
+.aws.tmp.creds.json
+web-src/.parcel-cache/
