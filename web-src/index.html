@@ -208,16 +208,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <body>
 
 <!-- Password Gate -->
-<div id="pw-gate">
-  <div class="pw-card">
-    <div class="pw-icon">🔒</div>
-    <h2>GenStudio Org Mapping Viewer</h2>
-    <p>This tool is for Engagement Managers. Enter the access password to continue.</p>
-    <input class="pw-input" type="password" id="pw-input" placeholder="Enter password" autocomplete="current-password" />
-    <button class="pw-btn" id="pw-btn" onclick="submitPassword()">Continue</button>
-    <div class="pw-error" id="pw-error"></div>
-  </div>
-</div>
+<div id="pw-gate" style="display:none"></div>
 
 <div class="topbar">
   <div class="tl">
@@ -236,8 +227,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
     <button class="btn btn-sm" id="export-ppt-btn" style="display:none">Export PPT</button>
     <button class="btn btn-sm btn-p" id="export-btn" style="display:none">Export CSV</button>
     <a class="btn btn-sm" id="sharepoint-btn" href="https://adobe.sharepoint.com/sites/GenAIDelivery/Shared%20Documents/Forms/AllItems.aspx?id=%2Fsites%2FGenAIDelivery%2FShared%20Documents%2FGenStudio%20Customers%2FGSPeM%20Customer%20Org%20Mapping&viewid=d8522e08%2Dd85d%2D4a0b%2Db5b8%2D661d0fa86496&FolderCTID=0x01200023E311A425EE3748A70C86756895BBC6" target="_blank" rel="noopener" style="text-decoration:none;display:none">SharePoint</a>
-    <button class="btn btn-sm" onclick="openChangePwModal()" title="Change viewer password">🔑 Password</button>
-    <a class="btn btn-sm" href="https://3326322-genstudioorgcapture-stage.adobeio-static.net/index.html" target="_blank" rel="noopener" style="text-decoration:none">← Builder ↗</a>
+    <a class="btn btn-sm btn-p" href="https://3326322-genstudioorgcapture-stage.adobeio-static.net/index.html" target="_blank" rel="noopener" style="text-decoration:none">Go to Builder ↗</a>
   </div>
 </div>
 
@@ -247,7 +237,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
     <div class="sidebar-head">
       <div class="sidebar-title">
         Customers
-        <span class="sidebar-count" id="sidebar-count">0</span>
+        <span style="display:flex;align-items:center;gap:4px;">
+          <span class="sidebar-count" id="sidebar-count">0</span>
+          <button id="sort-btn" onclick="toggleSidebarSort()" title="Toggle sort order" style="background:none;border:none;cursor:pointer;padding:2px 4px;font-size:12px;color:var(--text-muted);line-height:1;height:auto;">A↑</button>
+        </span>
       </div>
       <input class="sidebar-search" id="sidebar-search" type="text" placeholder="Search customers…" oninput="filterSidebar()" />
     </div>
@@ -282,10 +275,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
         <div class="action-bar">
           <span class="action-bar-label">Editing: <strong id="active-label"></strong></span>
           <button class="btn btn-sm" id="add-user-btn">+ Add user</button>
-          <button class="btn btn-sm" id="cloud-load-btn" onclick="openCloudLoadModal()">☁ Load</button>
-          <button class="btn btn-sm" id="cloud-save-btn" onclick="saveToCloud()">☁ Save</button>
-          <button class="btn btn-sm btn-p" id="export-btn2">Export CSV</button>
-          <a class="btn btn-sm" href="https://adobe.sharepoint.com/sites/GenAIDelivery/Shared%20Documents/Forms/AllItems.aspx?id=%2Fsites%2FGenAIDelivery%2FShared%20Documents%2FGenStudio%20Customers%2FGSPeM%20Customer%20Org%20Mapping&viewid=d8522e08%2Dd85d%2D4a0b%2Db5b8%2D661d0fa86496&FolderCTID=0x01200023E311A425EE3748A70C86756895BBC6" target="_blank" rel="noopener" style="text-decoration:none">SharePoint</a>
+          <span id="autosave-status" style="font-size:12px;color:var(--text-muted);margin-left:4px;"></span>
         </div>
         <div class="org-bar" id="org-bar"></div>
         <div id="view-area"></div>
@@ -297,49 +287,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <script>
 const ACTIONS_BASE = 'https://adobeioruntime.net/api/v1/web/3326322-genstudioorgviewer-stage/genstudio-org-viewer';
 
-// ── Password gate ────────────────────────────────────────────
-let sessionToken = sessionStorage.getItem('viewer_token');
-if (sessionToken) {
-  document.getElementById('pw-gate').classList.add('hidden');
-  document.addEventListener('DOMContentLoaded', loadAllMappings);
-}
-
-document.getElementById('pw-input').addEventListener('keydown', e => {
-  if (e.key === 'Enter') submitPassword();
-});
-
-async function submitPassword() {
-  const pw = document.getElementById('pw-input').value;
-  const btn = document.getElementById('pw-btn');
-  const err = document.getElementById('pw-error');
-  if (!pw) { err.textContent = 'Please enter the password.'; return; }
-  btn.disabled = true;
-  btn.textContent = 'Checking…';
-  err.textContent = '';
-  try {
-    const res = await fetch(`${ACTIONS_BASE}/auth`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password: pw })
-    });
-    const json = await res.json();
-    if (json.token) {
-      sessionStorage.setItem('viewer_token', json.token);
-      sessionToken = json.token;
-      document.getElementById('pw-gate').classList.add('hidden');
-      loadAllMappings();
-    } else {
-      err.textContent = 'Incorrect password. Please try again.';
-      document.getElementById('pw-input').value = '';
-      document.getElementById('pw-input').focus();
-    }
-  } catch (e) {
-    err.textContent = 'Unable to verify password. Please try again.';
-  } finally {
-    btn.disabled = false;
-    btn.textContent = 'Continue';
-  }
-}
+document.addEventListener('DOMContentLoaded', loadAllMappings);
 
 // ── Auto-load all mappings from S3 ───────────────────────────
 async function loadAllMappings() {
@@ -356,6 +304,7 @@ async function loadAllMappings() {
       return {
         fileName: m.key + '.json',
         orgName: data.orgName || m.label,
+        gspemEM: data.gspemEM || '',
         users: data.users || [],
         adobe: data.adobe || { salesSpecialist:'', accountAdNam:'', accountSc:'', pmmPm:'', csm:'', tam:'', sam:'', engagementManager:'', escalationOwner:'', engineering:'', pm:'', other:'', escalatedAccounts: false },
         s3Key: m.key
@@ -408,11 +357,16 @@ function toggleSidebar() {
   document.getElementById('sidebar').classList.toggle('collapsed', !sidebarOpen);
 }
 
+let sidebarSortAsc = true;
+
+function toggleSidebarSort() {
+  sidebarSortAsc = !sidebarSortAsc;
+  document.getElementById('sort-btn').textContent = sidebarSortAsc ? 'A↑' : 'Z↓';
+  renderSidebar();
+}
+
 function filterSidebar() {
-  const q = document.getElementById('sidebar-search').value.toLowerCase();
-  document.querySelectorAll('.sidebar-item').forEach(el => {
-    el.style.display = el.dataset.name.toLowerCase().includes(q) ? '' : 'none';
-  });
+  renderSidebar();
 }
 
 function parseCSV(txt) {
@@ -500,15 +454,24 @@ function renderSidebar() {
   if(!files.length) {
     list.innerHTML = '<div class="sidebar-empty">No customers loaded</div>'; return;
   }
-  list.innerHTML = files.map((f,i) => `
-    <div class="sidebar-item${i===activeIdx?' active':''}" data-name="${esc(f.orgName)}" data-i="${i}" onclick="activate(${i})">
+  const indices = files.map((_,i)=>i).sort((a,b) => {
+    const la = (files[a].orgName||'').toLowerCase(), lb = (files[b].orgName||'').toLowerCase();
+    return sidebarSortAsc ? la.localeCompare(lb) : lb.localeCompare(la);
+  });
+  const filtered = indices.filter(i => !q || (files[i].orgName||'').toLowerCase().includes(q));
+  if(!filtered.length) { list.innerHTML = '<div class="sidebar-empty">No matches</div>'; return; }
+  list.innerHTML = filtered.map(i => {
+    const f = files[i];
+    return `<div class="sidebar-item${i===activeIdx?' active':''}" data-name="${esc(f.orgName)}" data-i="${i}" onclick="activate(${i})">
       <span class="sidebar-item-name" title="${esc(f.fileName)}">${esc(f.orgName)}</span>
       <span class="sidebar-item-close" onclick="event.stopPropagation();closeFile(${i})" title="Remove">&times;</span>
-    </div>`).join('');
-  if(q) filterSidebar();
+    </div>`;
+  }).join('');
 }
 
 function closeFile(i) {
+  const name = files[i]?.orgName || 'this customer';
+  if (!confirm(`Remove "${name}"?\n\nAll data will be permanently removed.`)) return;
   files.splice(i,1);
   if(!files.length){ hideMainView(); activeIdx=-1; renderSidebar(); return; }
   activate(Math.min(i, files.length-1));
@@ -523,11 +486,13 @@ function activate(i) {
   document.getElementById('org-bar').innerHTML =
     `<input class="org-name-input" id="oni" value="${esc(f.orgName)}" placeholder="Organization name">
      <span class="org-badge">GenStudio for Performance Marketing</span>
-     <span style="font-size:12px;color:var(--text-muted)">${f.users.length} user${f.users.length!==1?'s':''}</span>`;
+     <span style="font-size:12px;color:var(--text-muted)">${f.users.length} user${f.users.length!==1?'s':''}</span>
+     ${f.gspemEM ? `<span style="font-size:12px;color:var(--text-muted)">· EM: <strong>${esc(f.gspemEM)}</strong></span>` : ''}`;
   document.getElementById('oni').oninput = e => {
     files[activeIdx].orgName = e.target.value;
     document.getElementById('active-label').textContent = e.target.value;
-    renderTabs();
+    renderSidebar();
+    triggerAutoSave();
   };
   render();
 }
@@ -714,10 +679,12 @@ function renderTable() {
 
   va.querySelectorAll('.adobe-input').forEach(el => el.addEventListener('input', e => {
     files[activeIdx].adobe[e.target.dataset.af] = e.target.value;
+    triggerAutoSave();
   }));
   const escChk = va.querySelector('#esc-acct');
   if(escChk) escChk.addEventListener('change', e => {
     files[activeIdx].adobe.escalatedAccounts = e.target.checked;
+    triggerAutoSave();
   });
 
   va.querySelectorAll('.ed').forEach(el => el.addEventListener('input', e => {
@@ -727,6 +694,7 @@ function renderTable() {
       if(av) av.textContent = inits(e.target.value||'U');
     }
     if(e.target.dataset.f==='reportsTo') refreshDerivedTables();
+    triggerAutoSave();
   }));
 
   va.querySelectorAll('.dot').forEach(el => el.addEventListener('click', () => {
@@ -735,6 +703,7 @@ function renderTable() {
     el.textContent=u[s]?'Y':'–';
     el.className='dot'+(u[s]?'':' off');
     el.style.cssText=u[s]?`background:${c.bg};color:${c.text};border-color:${c.border}`:'';
+    triggerAutoSave();
   }));
 
   va.querySelectorAll('.eb-dot').forEach(el => el.addEventListener('click', () => {
@@ -744,10 +713,12 @@ function renderTable() {
     el.className='eb-dot'+(u.economicBuyer?'':' off');
     el.style.cssText=u.economicBuyer?`background:#FAEEDA;color:#633806;border-color:#EF9F27`:'';
     refreshDerivedTables();
+    triggerAutoSave();
   }));
 
   va.querySelectorAll('[data-del]').forEach(el => el.addEventListener('click', () => {
     files[activeIdx].users.splice(+el.dataset.del,1); renderTable();
+    triggerAutoSave();
   }));
 
   document.getElementById('add-row').onclick = addUser;
@@ -957,6 +928,7 @@ function renderBoard() {
   va.querySelectorAll('.bcell').forEach(el => el.addEventListener('click', () => {
     files[activeIdx].users[+el.dataset.ui][el.dataset.s] = !files[activeIdx].users[+el.dataset.ui][el.dataset.s];
     renderBoard();
+    triggerAutoSave();
   }));
   renderLeg('prac-legend');
 }
@@ -979,6 +951,7 @@ function addUser() {
   render();
   const inputs = document.querySelectorAll('.ed.nm');
   if(inputs.length) inputs[inputs.length-1].focus();
+  triggerAutoSave();
 }
 
 function exportCSV() {
@@ -1014,7 +987,6 @@ document.getElementById('file-input').onchange = e => { loadFiles(e.target.files
 document.getElementById('add-files-btn').onclick = () => document.getElementById('add-file-input').click();
 document.getElementById('add-file-input').onchange = e => { loadFiles(e.target.files); e.target.value=''; };
 document.getElementById('export-btn').onclick = exportCSV;
-document.getElementById('export-btn2').onclick = exportCSV;
 document.getElementById('add-user-btn').onclick = addUser;
 document.querySelectorAll('.vbtn').forEach(btn => btn.onclick = () => {
   view = btn.dataset.view;
@@ -1187,25 +1159,49 @@ function generatePPT() {
 document.getElementById('export-ppt-btn').onclick = generatePPT;
 
 // ── Cloud storage ──────────────────────────────────────────
-async function saveToCloud() {
+let autoSaveTimer = null;
+function triggerAutoSave() {
+  const status = document.getElementById('autosave-status');
+  if(status) status.textContent = 'Saving…';
+  clearTimeout(autoSaveTimer);
+  autoSaveTimer = setTimeout(autoSave, 1000);
+}
+
+async function autoSave() {
   if(activeIdx < 0) return;
   const f = files[activeIdx];
-  const btn = document.getElementById('cloud-save-btn');
-  btn.textContent = '☁ Saving…'; btn.disabled = true;
+  if(!f.orgName) return;
+  const status = document.getElementById('autosave-status');
   try {
     const key = f.orgName.replace(/[^a-zA-Z0-9_-]/g,'_');
     const res = await fetch(`${ACTIONS_BASE}/save-mapping`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ key, data: { orgName: f.orgName, users: f.users, adobe: f.adobe } })
+      body: JSON.stringify({ key, data: { orgName: f.orgName, gspemEM: f.gspemEM || '', users: f.users, adobe: f.adobe } })
     });
     const json = await res.json();
     if(json.error) throw new Error(json.error);
-    btn.textContent = '☁ Saved ✓';
-    setTimeout(() => { btn.textContent = '☁ Save'; btn.disabled = false; }, 2000);
+    if(status) { status.textContent = '✓ Saved'; setTimeout(() => { if(status) status.textContent = ''; }, 2000); }
   } catch(e) {
-    alert('Save failed: ' + e.message);
-    btn.textContent = '☁ Save'; btn.disabled = false;
+    if(status) status.textContent = '⚠ Save failed';
+    console.warn('Auto-save failed:', e.message);
+  }
+}
+
+async function saveToCloud() {
+  if(activeIdx < 0) return;
+  const f = files[activeIdx];
+  try {
+    const key = f.orgName.replace(/[^a-zA-Z0-9_-]/g,'_');
+    const res = await fetch(`${ACTIONS_BASE}/save-mapping`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key, data: { orgName: f.orgName, gspemEM: f.gspemEM || '', users: f.users, adobe: f.adobe } })
+    });
+    const json = await res.json();
+    if(json.error) throw new Error(json.error);
+  } catch(e) {
+    console.warn('Save failed:', e.message);
   }
 }
 
@@ -1236,10 +1232,11 @@ async function loadFromCloud(key) {
     const res = await fetch(`${ACTIONS_BASE}/load-mapping`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ key }) });
     const json = await res.json();
     if(!json.data) { showToast('Not found'); return; }
-    const { orgName, users: u, adobe: a } = json.data;
+    const { orgName, gspemEM, users: u, adobe: a } = json.data;
     files.push({
       fileName: key + '.csv',
       orgName: orgName || key,
+      gspemEM: gspemEM || '',
       users: u || [],
       adobe: a || { salesSpecialist:'',accountAdNam:'',accountSc:'',pmmPm:'',csm:'',tam:'',sam:'',engagementManager:'',escalationOwner:'',engineering:'',pm:'',other:'',escalatedAccounts:false }
     });
