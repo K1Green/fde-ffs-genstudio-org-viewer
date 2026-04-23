@@ -287,14 +287,23 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <script>
 const ACTIONS_BASE = 'https://adobeioruntime.net/api/v1/web/3326322-genstudioorgviewer-stage/genstudio-org-viewer';
 
-document.addEventListener('DOMContentLoaded', loadAllMappings);
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('upload-screen').style.display = 'none';
+  loadAllMappings();
+});
+
+function mergeGspemEM(adobe, gspemEM) {
+  const base = adobe || { salesSpecialist:'', accountAdNam:'', accountSc:'', pmmPm:'', csm:'', tam:'', sam:'', engagementManager:'', escalationOwner:'', engineering:'', pm:'', other:'', escalatedAccounts: false };
+  if (!base.engagementManager && gspemEM) base.engagementManager = gspemEM;
+  return base;
+}
 
 // ── Auto-load all mappings from S3 ───────────────────────────
 async function loadAllMappings() {
   try {
     const listRes = await fetch(`${ACTIONS_BASE}/list-mappings`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({}) });
     const { mappings } = await listRes.json();
-    if (!mappings || mappings.length === 0) return;
+    if (!mappings || mappings.length === 0) { document.getElementById('upload-screen').style.display = ''; return; }
 
     // Load all in parallel (cap at 20 concurrent)
     const results = await Promise.all(mappings.map(async m => {
@@ -306,19 +315,20 @@ async function loadAllMappings() {
         orgName: data.orgName || m.label,
         gspemEM: data.gspemEM || '',
         users: data.users || [],
-        adobe: data.adobe || { salesSpecialist:'', accountAdNam:'', accountSc:'', pmmPm:'', csm:'', tam:'', sam:'', engagementManager:'', escalationOwner:'', engineering:'', pm:'', other:'', escalatedAccounts: false },
+        adobe: mergeGspemEM(data.adobe, data.gspemEM),
         s3Key: m.key
       };
     }));
 
     const loaded = results.filter(Boolean);
-    if (loaded.length === 0) return;
+    if (loaded.length === 0) { document.getElementById('upload-screen').style.display = ''; return; }
     files.push(...loaded);
     showMainView();
     renderSidebar();
     activate(0);
   } catch (e) {
     console.error('Failed to load mappings:', e);
+    document.getElementById('upload-screen').style.display = '';
   }
 }
 
@@ -843,12 +853,12 @@ function renderBoard() {
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
         <div style="width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;flex-shrink:0;font-family:'DM Mono',monospace;background:${c.bg};color:${c.text}">${av}</div>
         <div style="min-width:0">
-          <div style="font-size:12px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#1a1a18">${esc(u.name||'New user')}</div>
+          <div style="font-size:12px;font-weight:500;color:#1a1a18;line-height:1.3">${esc(u.name||'New user')}</div>
           <div style="font-size:10px;color:#7a7970">${esc(u.title||'—')}</div>
         </div>
       </div>
       <div style="font-size:10px;color:var(--text-muted);margin-bottom:2px">GenStudio role</div>
-      <div style="font-size:11px;font-weight:500;color:var(--text);margin-bottom:6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(u.role||'—')}</div>
+      <div style="font-size:11px;font-weight:500;color:var(--text);margin-bottom:6px;line-height:1.3">${esc(u.role||'—')}</div>
       <span style="display:inline-block;font-size:10px;padding:2px 8px;border-radius:20px;font-weight:500;background:${c.bg};color:${c.text};border:0.5px solid ${c.border};max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(u.persona||'—')}</span>
       ${u.economicBuyer ? `<span style="display:inline-block;font-size:10px;padding:2px 8px;border-radius:20px;font-weight:500;background:#FAEEDA;color:#633806;border:0.5px solid #EF9F27;margin-left:4px">Econ. buyer</span>` : ''}
     </div>`;
@@ -856,8 +866,7 @@ function renderBoard() {
       const on = u[s.key];
       row += `<div class="bcell" data-ui="${ui}" data-s="${s.key}"
         style="background:${on?c.bg:'#f0efe9'};border-color:${on?c.border:'rgba(0,0,0,0.1)'};color:${on?c.text:'#b0afa6'}">
-        <div style="font-size:18px;line-height:1;margin-bottom:3px">${on?'✓':'–'}</div>
-        <div style="font-size:9px;opacity:0.75">${on?'Active':'Not set'}</div>
+        <div style="font-size:18px;line-height:1">${on?'✓':'–'}</div>
       </div>`;
     });
     userRows += `<div class="board-row" style="grid-template-columns:${cols}">${row}</div>`;
@@ -1122,8 +1131,7 @@ function generatePPT() {
     STEPS.forEach((s,si)=>{
       const sx=PRAC_X+USER_W+GAP+si*(STEP_W+GAP), on=!!u[s.key];
       addRect(sx,ry,STEP_W,CELL_H,on?c[0]:'f0efe9',on?c[2]:'d0cfc7',0.3);
-      addTxt(on?'✓':'–',sx,ry+CELL_H*0.2,STEP_W,CELL_H*0.45,Math.floor(CELL_H*(on?10:8)),on,on?c[1]:'c8c7c0','center');
-      addTxt(on?'Active':'Not set',sx,ry+CELL_H*0.68,STEP_W,CELL_H*0.28,7,false,on?c[1]:'c8c7c0','center');
+      addTxt(on?'✓':'–',sx,ry+CELL_H*0.15,STEP_W,CELL_H*0.7,Math.floor(CELL_H*(on?10:8)),on,on?c[1]:'c8c7c0','center');
     });
   });
 
@@ -1250,7 +1258,7 @@ async function loadFromCloud(key) {
       orgName: orgName || key,
       gspemEM: gspemEM || '',
       users: u || [],
-      adobe: a || { salesSpecialist:'',accountAdNam:'',accountSc:'',pmmPm:'',csm:'',tam:'',sam:'',engagementManager:'',escalationOwner:'',engineering:'',pm:'',other:'',escalatedAccounts:false }
+      adobe: mergeGspemEM(a, gspemEM)
     });
     showMainView();
     renderSidebar();
