@@ -469,9 +469,21 @@ function renderSidebar() {
   }).join('');
 }
 
-function closeFile(i) {
-  const name = files[i]?.orgName || 'this customer';
+async function closeFile(i) {
+  const f = files[i];
+  const name = f?.orgName || 'this customer';
   if (!confirm(`Remove "${name}"?\n\nAll data will be permanently removed.`)) return;
+  const key = (f?.orgName || '').replace(/[^a-zA-Z0-9_-]/g, '_');
+  if (key) {
+    try {
+      await fetch(`${ACTIONS_BASE}/delete-mapping`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key })
+      });
+    } catch (e) {
+      console.warn('Delete from S3 failed:', e.message);
+    }
+  }
   files.splice(i,1);
   if(!files.length){ hideMainView(); activeIdx=-1; renderSidebar(); return; }
   activate(Math.min(i, files.length-1));
@@ -524,7 +536,7 @@ function renderTable() {
         </div>
       </div></td>
       <td class="tc"><div class="eb-dot${ebOn?'':' off'}" style="${ebSt}" data-ui="${ui}" data-f="economicBuyer">${ebOn?'Y':'–'}</div></td>
-      <td class="rc" style="white-space:normal;word-break:break-word;font-size:12px">${esc(u.role)||'—'}</td>
+      <td class="rc"><input class="ed rl" data-ui="${ui}" data-f="role" value="${esc(u.role)}" placeholder="Role…"></td>
       <td class="rc"><input class="ed ps" data-ui="${ui}" data-f="persona" value="${esc(u.persona)}" placeholder="Persona"></td>
       ${dots}
       <td class="rc"><input class="ed rt" data-ui="${ui}" data-f="reportsTo" value="${esc(u.reportsTo)}" placeholder="Reports to…"></td>
