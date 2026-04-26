@@ -1,6 +1,6 @@
 {
   "name": "fde-ffs-genstudio-org-viewer",
-  "version": "1.0.0",
+  "version": "2.1.0",
   "scripts": {
     "build": "cd web-src && npm run build",
     "deploy": "npm run build && aio app deploy --no-actions"

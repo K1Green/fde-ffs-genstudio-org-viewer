@@ -130,12 +130,12 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .mapping-table td.tc{text-align:center;}
 .user-inner{display:flex;align-items:center;gap:10px;}
 .avatar{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;flex-shrink:0;font-family:'DM Mono',monospace;}
-.ed{font-family:'DM Sans',sans-serif;border:none;background:transparent;outline:none;color:var(--text);width:100%;cursor:text;}
+.ed{font-family:'DM Sans',sans-serif;border:none;background:transparent;outline:none;color:var(--text);width:100%;cursor:text;resize:none;overflow:hidden;display:block;}
 .ed:focus{background:var(--surface2);border-radius:3px;padding:1px 4px;}
 .ed.nm{font-size:13px;font-weight:500;}
 .ed.sb{font-size:11px;color:var(--text-muted);margin-top:1px;}
-.ed.rl,.ed.ps,.ed.rt{font-size:12px;}
-.ed.rl{white-space:normal;word-break:break-word;}
+.ed.rl,.ed.ps,.ed.rt{font-size:12px;word-break:break-word;overflow-wrap:anywhere;}
+.ed.rl{white-space:pre-wrap;word-break:break-word;}
 .dot{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto;font-size:11px;font-weight:500;cursor:pointer;border:0.5px solid;user-select:none;transition:transform .1s;}
 .dot:hover{transform:scale(1.15);}
 .dot.off{background:var(--surface2);color:var(--text-hint);border-color:var(--border);}
@@ -509,7 +509,7 @@ function activate(i) {
     `<input class="org-name-input" id="oni" value="${esc(f.orgName)}" placeholder="Organization name">
      <span class="org-badge">GenStudio for Performance Marketing</span>
      <span style="font-size:12px;color:var(--text-muted)">${f.users.length} user${f.users.length!==1?'s':''}</span>
-     ${f.gspemEM ? `<span style="font-size:12px;color:var(--text-muted)">· EM: <strong>${esc(f.gspemEM)}</strong></span>` : ''}`;
+     ${f.gspemEM ? `<span style="font-size:12px;color:var(--text-muted);word-break:break-word;overflow-wrap:anywhere">· EM: <strong>${esc(f.gspemEM)}</strong></span>` : ''}`;
   document.getElementById('oni').oninput = e => {
     files[activeIdx].orgName = e.target.value;
     document.getElementById('active-label').textContent = e.target.value;
@@ -546,10 +546,10 @@ function renderTable() {
         </div>
       </div></td>
       <td class="tc"><div class="eb-dot${ebOn?'':' off'}" style="${ebSt}" data-ui="${ui}" data-f="economicBuyer">${ebOn?'Y':'–'}</div></td>
-      <td class="rc"><input class="ed rl" data-ui="${ui}" data-f="role" value="${esc(u.role)}" placeholder="Role…"></td>
-      <td class="rc"><input class="ed ps" data-ui="${ui}" data-f="persona" value="${esc(u.persona)}" placeholder="Persona"></td>
+      <td class="rc"><textarea class="ed rl" data-ui="${ui}" data-f="role" placeholder="Role…" rows="1">${esc(u.role)}</textarea></td>
+      <td class="rc"><textarea class="ed ps" data-ui="${ui}" data-f="persona" placeholder="Persona" rows="1">${esc(u.persona)}</textarea></td>
       ${dots}
-      <td class="rc"><input class="ed rt" data-ui="${ui}" data-f="reportsTo" value="${esc(u.reportsTo)}" placeholder="Reports to…"></td>
+      <td class="rc"><textarea class="ed rt" data-ui="${ui}" data-f="reportsTo" placeholder="Reports to…" rows="1">${esc(u.reportsTo)}</textarea></td>
       <td><button class="btn btn-sm" style="color:#b0afa6;padding:2px 8px" data-del="${ui}">✕</button></td>
     </tr>`;
   });
@@ -561,7 +561,7 @@ function renderTable() {
     return `<tr>
       <td><div class="user-inner">
         <div class="avatar" style="background:${c.bg};color:${c.text};font-size:11px">${av}</div>
-        <div><div style="font-size:13px;font-weight:500">${esc(u.name)}</div><div style="font-size:11px;color:var(--text-muted)">${esc(u.title)}</div></div>
+        <div style="min-width:0"><div style="font-size:13px;font-weight:500;word-break:break-word;overflow-wrap:anywhere">${esc(u.name)}</div><div style="font-size:11px;color:var(--text-muted);word-break:break-word">${esc(u.title)}</div></div>
       </div></td>
       <td>${esc(u.persona)||'—'}</td>
       <td>${esc(u.role)||'—'}</td>
@@ -587,9 +587,9 @@ function renderTable() {
     return `<tr>
       <td><div class="user-inner">
         <div class="avatar" style="background:${c.bg};color:${c.text};font-size:11px">${av}</div>
-        <div style="font-size:13px;font-weight:500">${esc(name)}</div>
+        <div style="font-size:13px;font-weight:500;word-break:break-word;overflow-wrap:anywhere">${esc(name)}</div>
       </div></td>
-      <td style="font-size:12px;color:var(--text-muted)">${reports}</td>
+      <td style="font-size:12px;color:var(--text-muted);word-break:break-word;overflow-wrap:anywhere">${reports}</td>
     </tr>`;
   }).join('') : `<tr class="empty-row"><td colspan="2">No stakeholders identified yet — fill in the "Reports to" field in the Practitioners table above.</td></tr>`;
 
@@ -709,15 +709,19 @@ function renderTable() {
     triggerAutoSave();
   });
 
-  va.querySelectorAll('.ed').forEach(el => el.addEventListener('input', e => {
-    files[activeIdx].users[+e.target.dataset.ui][e.target.dataset.f] = e.target.value;
-    if(e.target.dataset.f==='name'){
-      const av = e.target.closest('tr').querySelector('.avatar');
-      if(av) av.textContent = inits(e.target.value||'U');
-    }
-    if(e.target.dataset.f==='reportsTo') refreshDerivedTables();
-    triggerAutoSave();
-  }));
+  va.querySelectorAll('.ed').forEach(el => {
+    if(el.tagName==='TEXTAREA') { el.style.height='auto'; el.style.height=el.scrollHeight+'px'; }
+    el.addEventListener('input', e => {
+      if(e.target.tagName==='TEXTAREA') { e.target.style.height='auto'; e.target.style.height=e.target.scrollHeight+'px'; }
+      files[activeIdx].users[+e.target.dataset.ui][e.target.dataset.f] = e.target.value;
+      if(e.target.dataset.f==='name'){
+        const av = e.target.closest('tr').querySelector('.avatar');
+        if(av) av.textContent = inits(e.target.value||'U');
+      }
+      if(e.target.dataset.f==='reportsTo') refreshDerivedTables();
+      triggerAutoSave();
+    });
+  });
 
   va.querySelectorAll('.dot').forEach(el => el.addEventListener('click', () => {
     const ui=+el.dataset.ui, s=el.dataset.s, u=files[activeIdx].users[ui];
@@ -756,7 +760,7 @@ function refreshDerivedTables() {
     return `<tr>
       <td><div class="user-inner">
         <div class="avatar" style="background:#FAEEDA;color:#633806;font-size:11px">${av}</div>
-        <div><div style="font-size:13px;font-weight:500">${esc(u.name)}</div><div style="font-size:11px;color:var(--text-muted)">${esc(u.title)}</div></div>
+        <div style="min-width:0"><div style="font-size:13px;font-weight:500;word-break:break-word;overflow-wrap:anywhere">${esc(u.name)}</div><div style="font-size:11px;color:var(--text-muted);word-break:break-word">${esc(u.title)}</div></div>
       </div></td>
       <td>${esc(u.persona)||'—'}</td>
       <td>${esc(u.role)||'—'}</td>
@@ -779,9 +783,9 @@ function refreshDerivedTables() {
     return `<tr>
       <td><div class="user-inner">
         <div class="avatar" style="background:#E1F5EE;color:#085041;font-size:11px">${av}</div>
-        <div style="font-size:13px;font-weight:500">${esc(name)}</div>
+        <div style="font-size:13px;font-weight:500;word-break:break-word;overflow-wrap:anywhere">${esc(name)}</div>
       </div></td>
-      <td style="font-size:12px;color:var(--text-muted)">${reports}</td>
+      <td style="font-size:12px;color:var(--text-muted);word-break:break-word;overflow-wrap:anywhere">${reports}</td>
     </tr>`;
   }).join('') : `<tr class="empty-row"><td colspan="2">No stakeholders identified yet.</td></tr>`;
 
@@ -853,12 +857,12 @@ function renderBoard() {
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
         <div style="width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;flex-shrink:0;font-family:'DM Mono',monospace;background:${c.bg};color:${c.text}">${av}</div>
         <div style="min-width:0">
-          <div style="font-size:12px;font-weight:500;color:#1a1a18;line-height:1.3">${esc(u.name||'New user')}</div>
-          <div style="font-size:10px;color:#7a7970">${esc(u.title||'—')}</div>
+          <div style="font-size:11px;font-weight:500;color:#1a1a18;line-height:1.35;word-break:break-word;overflow-wrap:anywhere">${esc(u.name||'New user')}</div>
+          <div style="font-size:10px;color:#7a7970;word-break:break-word">${esc(u.title||'—')}</div>
         </div>
       </div>
       <div style="font-size:10px;color:var(--text-muted);margin-bottom:2px">GenStudio role</div>
-      <div style="font-size:11px;font-weight:500;color:var(--text);margin-bottom:6px;line-height:1.3">${esc(u.role||'—')}</div>
+      <div style="font-size:11px;font-weight:500;color:var(--text);margin-bottom:6px;line-height:1.35;word-break:break-word;overflow-wrap:anywhere">${esc(u.role||'—')}</div>
       <span style="display:inline-block;font-size:10px;padding:2px 8px;border-radius:20px;font-weight:500;background:${c.bg};color:${c.text};border:0.5px solid ${c.border};max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(u.persona||'—')}</span>
       ${u.economicBuyer ? `<span style="display:inline-block;font-size:10px;padding:2px 8px;border-radius:20px;font-weight:500;background:#FAEEDA;color:#633806;border:0.5px solid #EF9F27;margin-left:4px">Econ. buyer</span>` : ''}
     </div>`;
@@ -1023,157 +1027,243 @@ function generatePPT() {
   const pres = new PptxGenJS();
   pres.defineLayout({ name:'CUSTOM', width:20, height:11.25 });
   pres.layout = 'CUSTOM';
-  const slide = pres.addSlide();
 
-  const SW=20, SH=11.25;
-
-  function addRect(x,y,w,h,fill,lineColor,lw) {
-    const o={x,y,w,h,fill:{color:fill}};
-    o.line = lineColor ? {color:lineColor,width:lw||0.4} : {type:'none'};
-    slide.addShape(pres.ShapeType.rect, o);
-  }
-  function addOval(x,y,w,h,fill,lineColor) {
-    const o={x,y,w,h,fill:{color:fill}};
-    o.line = lineColor ? {color:lineColor,width:0.5} : {type:'none'};
-    slide.addShape(pres.ShapeType.ellipse, o);
-  }
-  function addTxt(text,x,y,w,h,size,bold,color,align,italic,wrap) {
-    slide.addText(String(text||''),{x,y,w,h,fontSize:size||9,bold:!!bold,italic:!!italic,
-      color:color||'1a1a18',fontFace:'Calibri',align:align||'left',valign:'top',wrap:wrap!==false});
-  }
-
-  const initials = name => {
-    const p=(name||'').replace(',','').trim().split(/\s+/);
-    return p.length>=2?(p[p.length-1][0]+p[0][0]).toUpperCase():(name||'??').slice(0,2).toUpperCase();
-  };
-
-  const users=f.users, orgName=f.orgName;
-  const buyers=users.filter(u=>u.economicBuyer);
-  const stakeMap={};
-  users.forEach(u=>{const n=(u.reportsTo||'').trim();if(n){if(!stakeMap[n])stakeMap[n]=[];stakeMap[n].push(u.name);}});
-  const stakes=Object.entries(stakeMap);
-  const n_u=users.length, n_b=buyers.length, n_s=stakes.length;
+  // ── Constants (inches) ──────────────────────────────────────
+  const SW=20, SH=11.25, HDR_H=0.65, FTR_H=0.2, MARGIN=0.28;
+  const RIGHT_W=3.5, RIGHT_X=SW-MARGIN-RIGHT_W;
+  const PRAC_W=RIGHT_X-MARGIN-0.2, PRAC_X=MARGIN, USER_W=3.2;
+  const LBL_H=0.24, ROW_GAP=0.05, MIN_CELL=1.1, MAX_CELL=2.0;
+  const TOP=HDR_H+0.2, BOTTOM=SH-FTR_H-0.02, AVAIL_H=BOTTOM-TOP;
+  const AT_BLOCK_H=LBL_H+0.05+1.7+0.18;
+  const PRAC_AVAIL_S1=AVAIL_H-AT_BLOCK_H;
 
   const COLORS_LIST=[
     ['EEEDFE','3C3489','AFA9EC'],['E1F5EE','085041','5DCAA5'],
     ['FAECE7','712B13','F0997B'],['FAEEDA','633806','EF9F27'],['FBEAF0','72243E','ED93B1'],
   ];
 
-  addRect(0,0,SW,SH,'f5f4f0');
-  const HDR_H=0.65;
-  addRect(0,0,SW,HDR_H,'1a1a18'); addRect(0,0,0.1,HDR_H,'2d5be3');
-  addTxt(orgName,0.28,0.08,10,0.35,20,true,'FFFFFF','left',false,false);
-  addTxt('GenStudio for Performance Marketing — Organizational Mapping',0.28,0.42,14,0.22,8,false,'7a7970');
+  const users=f.users, orgName=f.orgName, adobe=f.adobe||{};
+  const escalated=!!adobe.escalatedAccounts;
+  const buyers=users.filter(u=>u.economicBuyer);
+  const stakeMap={};
+  users.forEach(u=>{const n=(u.reportsTo||'').trim();if(n){if(!stakeMap[n])stakeMap[n]=[];stakeMap[n].push(u.name);}});
+  const stakes=Object.entries(stakeMap);
+  const n_u=users.length, n_b=buyers.length, n_s=stakes.length;
 
-  const MARGIN=0.28, TOP=HDR_H+0.2, BOTTOM=SH-0.22, AVAIL_H=BOTTOM-TOP;
-  const RIGHT_W=4.5, RIGHT_X=SW-MARGIN-RIGHT_W;
-  const PRAC_W=RIGHT_X-MARGIN-0.2, PRAC_X=MARGIN;
+  const initials = name => {
+    const p=(name||'').replace(',','').trim().split(/\s+/);
+    return p.length>=2?(p[p.length-1][0]+p[0][0]).toUpperCase():(name||'??').slice(0,2).toUpperCase();
+  };
 
-  const LBL_H=0.24, AT_HDR_H=0.3, N_GRP=3;
-  const GRP_W=(PRAC_W-0.1*(N_GRP-1))/N_GRP, GRP_H=1.6, AT_TOP=TOP;
-  addTxt('ADOBE ACCOUNT TEAM',PRAC_X,AT_TOP,4,LBL_H,7.5,true,'8B3A0F');
+  // ── Split users across slides ────────────────────────────────
+  function calcCellH(n, avail) {
+    if(!n) return MAX_CELL;
+    const h=(avail-(n+1)*ROW_GAP)/n;
+    return Math.max(MIN_CELL, Math.min(MAX_CELL, h));
+  }
 
-  const adobeGroups=[
-    ['Sales',[['Sales Specialist','salesSpecialist'],['Account AD/NAM','accountAdNam'],['Account SC','accountSc'],['PMM/PM','pmmPm']]],
-    ['Customer Success & Adoption',[['CSM','csm'],['TAM','tam'],['SAM','sam'],['Engagement Manager','engagementManager']]],
-    ['Escalated Accounts',[['Escalation Owner','escalationOwner'],['Engineering','engineering'],['PM','pm'],['Other','other']]],
-  ];
-  const at_card_top=AT_TOP+LBL_H+0.05;
-  adobeGroups.forEach(([grpTitle,fields],gi)=>{
-    const gx=PRAC_X+gi*(GRP_W+0.1), gy=at_card_top;
-    addRect(gx,gy,GRP_W,GRP_H,'FFFAF6','F4A46A',0.4);
-    addRect(gx,gy,GRP_W,AT_HDR_H,'FFF0E8');
-    addTxt(grpTitle.toUpperCase(),gx+0.1,gy+0.05,GRP_W-0.2,AT_HDR_H-0.05,7,true,'8B3A0F');
-    const fh=(GRP_H-AT_HDR_H-0.1)/fields.length;
-    fields.forEach(([label,key],fi)=>{
-      const fy=gy+AT_HDR_H+0.05+fi*fh, val=f.adobe[key]||'';
-      addTxt(label+':',gx+0.1,fy,1.1,fh*0.55,7,false,'b0afa6');
-      addTxt(val||'—',gx+1.2,fy,GRP_W-1.3,fh*0.55,7.5,!!val,val?'1a1a18':'c8c7c0','left',false,false);
-    });
-  });
-
-  const ADOBE_BLOCK_H=LBL_H+0.05+GRP_H+0.18;
-  const PRAC_TOP=AT_TOP+ADOBE_BLOCK_H, PRAC_AVAIL=AVAIL_H-ADOBE_BLOCK_H;
-  addTxt('PRACTITIONERS',PRAC_X,PRAC_TOP,2.5,LBL_H,7.5,true,'7a7970');
-  addTxt(`${n_u} user${n_u!==1?'s':''}`,PRAC_X+2.1,PRAC_TOP,1.5,LBL_H,7.5,false,'2d5be3');
-
-  const GRID_TOP=PRAC_TOP+LBL_H+0.05, USER_W=2.4, GAP=0.05;
-  const STEP_W=(PRAC_W-USER_W-GAP)/STEPS.length-GAP, HDR_ROW=0.38;
-
-  STEPS.forEach((s,si)=>{
-    const sx=PRAC_X+USER_W+GAP+si*(STEP_W+GAP);
-    addRect(sx,GRID_TOP,STEP_W,HDR_ROW,'e0dfd8','c8c7c0',0.3);
-    const lines=s.label.split('\n'), lh=HDR_ROW/(lines.length+0.4);
-    lines.forEach((line,li)=>addTxt(line,sx,GRID_TOP+lh*li+0.02,STEP_W,lh,7,false,'7a7970','center'));
-  });
-
-  const ROW_GAP=0.05, ROW_AVAIL=PRAC_AVAIL-LBL_H-0.05-HDR_ROW;
-  const CELL_H=Math.min((ROW_AVAIL-(n_u+1)*ROW_GAP)/Math.max(n_u,1),2.0);
-  const AV=Math.min(CELL_H*0.36,0.6);
-
-  users.forEach((u,ui)=>{
-    const c=COLORS_LIST[ui%COLORS_LIST.length];
-    const ry=GRID_TOP+HDR_ROW+ROW_GAP+ui*(CELL_H+ROW_GAP);
-    addRect(PRAC_X,ry,USER_W,CELL_H,'FFFFFF','d5d4cc',0.3);
-    addOval(PRAC_X+0.1,ry+0.1,AV,AV,c[0],c[2]);
-    addTxt(initials(u.name||'U'),PRAC_X+0.1,ry+0.1+AV*0.12,AV,AV*0.76,Math.max(7,Math.floor(AV*7)),true,c[1],'center');
-    const tx=PRAC_X+AV+0.2, tw=USER_W-AV-0.28, lh=CELL_H/5.5;
-    addTxt(u.name||'Unknown',tx,ry+0.08,tw,lh,9,true,'1a1a18','left',false,false);
-    addTxt(u.title||'',tx,ry+lh+0.08,tw,lh,7.5,false,'7a7970','left',false,false);
-    const ry2=ry+lh*2+0.12;
-    addTxt('GenStudio role',tx,ry2,tw,lh*0.7,6.5,false,'b0afa6');
-    addTxt(u.role||'—',tx,ry2+lh*0.65,tw,lh,7.5,true,'2d5be3','left',false,true);
-    addTxt(u.persona||'—',tx,ry2+lh*1.75,tw,lh,7,false,c[1],'left',true,false);
-    if(u.economicBuyer){
-      addRect(PRAC_X+0.1,ry+CELL_H-0.2,USER_W-0.2,0.17,'FAEEDA','EF9F27',0.3);
-      addTxt('★ Economic Buyer',PRAC_X+0.1,ry+CELL_H-0.2,USER_W-0.2,0.17,6.5,true,'633806','center');
+  function splitUsers(allUsers) {
+    const HDR_ROW=0.42;
+    const rowPool=PRAC_AVAIL_S1-LBL_H-0.05-HDR_ROW;
+    for(let n=allUsers.length; n>0; n--) {
+      const h=(rowPool-(n+1)*ROW_GAP)/n;
+      if(h>=MIN_CELL) return [allUsers.slice(0,n), allUsers.slice(n)];
     }
-    STEPS.forEach((s,si)=>{
-      const sx=PRAC_X+USER_W+GAP+si*(STEP_W+GAP), on=!!u[s.key];
-      addRect(sx,ry,STEP_W,CELL_H,on?c[0]:'f0efe9',on?c[2]:'d0cfc7',0.3);
-      addTxt(on?'✓':'–',sx,ry+CELL_H*0.15,STEP_W,CELL_H*0.7,Math.floor(CELL_H*(on?10:8)),on,on?c[1]:'c8c7c0','center');
+    return [allUsers.slice(0,1), allUsers.slice(1)];
+  }
+
+  const [users_s1, users_s2] = splitUsers(users);
+  const totalSlides = users_s2.length ? 2 : 1;
+
+  // ── Drawing helpers (slide-scoped) ───────────────────────────
+  function makeDraw(slide) {
+    const addRect=(x,y,w,h,fill,lineColor,lw)=>{
+      const o={x,y,w,h,fill:{color:fill}};
+      o.line=lineColor?{color:lineColor,width:lw||0.4}:{type:'none'};
+      slide.addShape(pres.ShapeType.rect, o);
+    };
+    const addOval=(x,y,w,h,fill,lineColor)=>{
+      const o={x,y,w,h,fill:{color:fill}};
+      o.line=lineColor?{color:lineColor,width:0.5}:{type:'none'};
+      slide.addShape(pres.ShapeType.ellipse, o);
+    };
+    const addTxt=(text,x,y,w,h,size,bold,color,align,italic,wrap)=>{
+      slide.addText(String(text||''),{x,y,w,h,fontSize:size||9,bold:!!bold,italic:!!italic,
+        color:color||'1a1a18',fontFace:'Arial',align:align||'left',valign:'top',wrap:wrap!==false});
+    };
+    return {addRect, addOval, addTxt};
+  }
+
+  // ── Header ───────────────────────────────────────────────────
+  function drawHeader(slide, slideNum) {
+    const {addRect, addTxt} = makeDraw(slide);
+    addRect(0,0,SW,SH,'f5f4f0');
+    addRect(0,0,SW,HDR_H,'1a1a18');
+    addRect(0,0,0.1,HDR_H,'2d5be3');
+    const counter = totalSlides>1 ? `  ·  Slide ${slideNum} of ${totalSlides}` : '';
+    // Rich header: org name + optional ESCALATED badge
+    const runs=[{text:orgName,options:{fontSize:22,bold:true,color:'FFFFFF',fontFace:'Arial'}}];
+    if(escalated) {
+      runs.push({text:'    ',options:{fontSize:22,color:'FFFFFF',fontFace:'Arial'}});
+      runs.push({text:'ESCALATED',options:{fontSize:15,bold:true,color:'FF3B30',fontFace:'Arial'}});
+    }
+    slide.addText(runs,{x:0.28,y:0.07,w:16,h:0.4,valign:'top'});
+    addTxt(`GenStudio for Performance Marketing — Organizational Mapping${counter}`,
+           0.28,0.45,16,0.2,9,false,'9a9990');
+  }
+
+  // ── Footer ───────────────────────────────────────────────────
+  function drawFooter(slide) {
+    const {addRect, addTxt} = makeDraw(slide);
+    addRect(0,SH-FTR_H,SW,FTR_H,'e0dfd8');
+    addTxt(`${orgName}  ·  GenStudio Org Mapping  ·  ${n_u} practitioners  ·  ${n_b} economic buyers  ·  ${n_s} stakeholders`,
+           0.3,SH-0.19,SW-0.6,0.18,8,false,'a0a098','center');
+  }
+
+  // ── Adobe account team ───────────────────────────────────────
+  function drawAdobeTeam(slide) {
+    const {addRect, addTxt} = makeDraw(slide);
+    const AT_HDR_H=0.32, GRP_H=1.7, N_GRP=3;
+    const GRP_W=(PRAC_W-0.1*(N_GRP-1))/N_GRP;
+    addTxt('ADOBE ACCOUNT TEAM',PRAC_X,TOP,4,LBL_H,9,true,'8B3A0F');
+    const cardTop=TOP+LBL_H+0.05;
+    const adobeGroups=[
+      ['Sales',[['Sales Specialist','salesSpecialist'],['Account AD/NAM','accountAdNam'],['Account SC','accountSc'],['PMM/PM','pmmPm']]],
+      ['Customer Success & Adoption',[['CSM','csm'],['TAM','tam'],['SAM','sam'],['Engagement Manager','engagementManager']]],
+      ['Escalated Accounts',[['Escalation Owner','escalationOwner'],['Engineering','engineering'],['PM','pm'],['Other','other']]],
+    ];
+    adobeGroups.forEach(([grpTitle,fields],gi)=>{
+      const gx=PRAC_X+gi*(GRP_W+0.1), gy=cardTop;
+      addRect(gx,gy,GRP_W,GRP_H,'FFFAF6','F4A46A',0.4);
+      addRect(gx,gy,GRP_W,AT_HDR_H,'FFF0E8');
+      addTxt(grpTitle.toUpperCase(),gx+0.1,gy+0.05,GRP_W-0.2,AT_HDR_H-0.06,8,true,'8B3A0F');
+      const fh=(GRP_H-AT_HDR_H-0.12)/fields.length;
+      fields.forEach(([label,key],fi)=>{
+        const fy=gy+AT_HDR_H+0.06+fi*fh, val=adobe[key]||'', isEM=(key==='engagementManager');
+        addTxt(label+':',gx+0.1,fy,1.3,fh*0.5,8,isEM,isEM?'7a7970':'b0afa6');
+        addTxt(val||'—',gx+1.4,fy,GRP_W-1.5,fh*0.55,isEM?10:9,!!val,val?'1a1a18':'c8c7c0','left',false,false);
+      });
     });
-  });
-
-  const HALF_GAP=0.2, HALF_H=(AVAIL_H-HALF_GAP)/2, SEC_H=0.36;
-
-  function rightSection(title,countText,hdrFill,hdrTc,topY,cardsData,cardFn){
-    addRect(RIGHT_X,topY,RIGHT_W,HALF_H,'FFFFFF','e0ded8',0.3);
-    addRect(RIGHT_X,topY,RIGHT_W,SEC_H,hdrFill);
-    addTxt(title,RIGHT_X+0.15,topY+0.06,RIGHT_W-0.3,0.2,8,true,hdrTc);
-    addTxt(countText,RIGHT_X+0.15,topY+0.22,RIGHT_W-0.3,0.14,7,false,hdrTc);
-    if(!cardsData.length){addTxt('None identified yet.',RIGHT_X+0.2,topY+0.52,RIGHT_W-0.4,0.28,8,false,'b0afa6','left',true);return;}
-    const CH=Math.min((HALF_H-SEC_H-0.12)/cardsData.length-0.08,1.2), CW=RIGHT_W-0.3;
-    cardsData.forEach((item,i)=>cardFn(RIGHT_X+0.15,topY+SEC_H+0.1+i*(CH+0.08),CW,CH,item));
   }
 
-  function ebCard(cx,cy,cw,ch,u){
-    const AV2=Math.min(ch*0.4,0.36);
-    addRect(cx,cy,cw,ch,'FFFDF8','EF9F27',0.5);
-    addOval(cx+0.1,cy+(ch-AV2)/2,AV2,AV2,'FAEEDA','EF9F27');
-    addTxt(initials(u.name||'?'),cx+0.1,cy+(ch-AV2)/2,AV2,AV2,8,true,'633806','center');
-    addTxt(u.name||'—',cx+0.55,cy+0.05,cw-0.62,ch*0.35,8.5,true,'1a1a18','left',false,false);
-    addTxt(u.title||'',cx+0.55,cy+ch*0.38,cw-0.62,ch*0.28,7,false,'7a7970','left',false,false);
-    addTxt((u.persona||'')+(u.reportsTo?'  ·  '+u.reportsTo:''),cx+0.1,cy+ch-0.2,cw-0.2,0.18,6.5,false,'8a7040','left',false,false);
+  // ── Step headers ─────────────────────────────────────────────
+  function drawStepHeaders(slide, gridTop) {
+    const {addRect, addTxt} = makeDraw(slide);
+    const GAP=0.05, HDR_ROW=0.42;
+    const STEP_W=(PRAC_W-USER_W-GAP)/STEPS.length-GAP;
+    STEPS.forEach((s,si)=>{
+      const sx=PRAC_X+USER_W+GAP+si*(STEP_W+GAP);
+      addRect(sx,gridTop,STEP_W,HDR_ROW,'e0dfd8','c8c7c0',0.3);
+      const lines=s.label.split('\n'), lh=HDR_ROW/(lines.length+0.4);
+      lines.forEach((line,li)=>addTxt(line,sx,gridTop+lh*li+0.02,STEP_W,lh,9,false,'7a7970','center'));
+    });
+    return {HDR_ROW, STEP_W, GAP};
   }
 
-  function stakeCard(cx,cy,cw,ch,item){
-    const [name,reports]=item, AV2=Math.min(ch*0.4,0.36);
-    addRect(cx,cy,cw,ch,'F8FFFC','5DCAA5',0.5);
-    addOval(cx+0.1,cy+(ch-AV2)/2,AV2,AV2,'E1F5EE','5DCAA5');
-    addTxt(initials(name),cx+0.1,cy+(ch-AV2)/2,AV2,AV2,8,true,'085041','center');
-    addTxt(name,cx+0.55,cy+0.05,cw-0.62,ch*0.35,8.5,true,'1a1a18','left',false,false);
-    addTxt('Reports: '+reports.join(', '),cx+0.1,cy+ch-0.2,cw-0.2,0.18,6.5,false,'3a7060','left',false,false);
+  // ── User rows ────────────────────────────────────────────────
+  function drawUserRows(slide, rowUsers, globalOffset, gridTop, cellH) {
+    const {addRect, addOval, addTxt} = makeDraw(slide);
+    const GAP=0.05, STEP_W=(PRAC_W-USER_W-GAP)/STEPS.length-GAP;
+    const HDR_ROW=0.42;
+    rowUsers.forEach((u,ri)=>{
+      const ui=ri+globalOffset, c=COLORS_LIST[ui%COLORS_LIST.length];
+      const ry=gridTop+HDR_ROW+ROW_GAP+ri*(cellH+ROW_GAP);
+      const AV=Math.min(cellH*0.32,0.55);
+      addRect(PRAC_X,ry,USER_W,cellH,'FFFFFF','d5d4cc',0.3);
+      addOval(PRAC_X+0.1,ry+0.1,AV,AV,c[0],c[2]);
+      addTxt(initials(u.name||'U'),PRAC_X+0.1,ry+0.1+AV*0.12,AV,AV*0.8,
+             Math.max(7,Math.floor(AV*7.5)),true,c[1],'center');
+      const tx=PRAC_X+AV+0.2, tw=USER_W-AV-0.3, lh=cellH/5.2;
+      addTxt(u.name||'Unknown',tx,ry+0.08,tw,lh,10,true,'1a1a18','left',false,true);
+      addTxt(u.title||'',tx,ry+lh+0.06,tw,lh*1.2,9,false,'7a7970','left',false,true);
+      const roleY=ry+lh*2.3+0.1;
+      addTxt('GenStudio role',tx,roleY,tw,lh*0.65,8,false,'b0afa6');
+      addTxt(u.role||'—',tx,roleY+lh*0.62,tw,lh*1.5,10,true,'2d5be3','left',false,true);
+      const personaY=roleY+lh*2.2;
+      addTxt(u.persona||'—',tx,personaY,tw,lh,9,false,c[1],'left',true,true);
+      if(u.economicBuyer){
+        addRect(PRAC_X+0.1,ry+cellH-0.22,USER_W-0.2,0.18,'FAEEDA','EF9F27',0.3);
+        addTxt('★ Economic Buyer',PRAC_X+0.1,ry+cellH-0.22,USER_W-0.2,0.18,8,true,'633806','center');
+      }
+      STEPS.forEach((s,si)=>{
+        const sx=PRAC_X+USER_W+GAP+si*(STEP_W+GAP), on=!!u[s.key];
+        addRect(sx,ry,STEP_W,cellH,on?c[0]:'f0efe9',on?c[2]:'d0cfc7',0.3);
+        addTxt(on?'✓':'–',sx,ry+cellH*0.3,STEP_W,cellH*0.4,
+               Math.floor(cellH*(on?10:8)),on,on?c[1]:'c8c7c0','center');
+      });
+    });
   }
 
-  rightSection('ECONOMIC BUYERS',`${n_b} identified`,'FAEEDA','633806',TOP,buyers,ebCard);
-  rightSection('STAKEHOLDERS',`${n_s} identified`,'E1F5EE','085041',TOP+HALF_H+HALF_GAP,stakes,stakeCard);
+  // ── Right column ─────────────────────────────────────────────
+  function drawRightColumn(slide) {
+    const {addRect, addOval, addTxt} = makeDraw(slide);
+    const HALF_GAP=0.2, HALF_H=(AVAIL_H-HALF_GAP)/2, SEC_H=0.38;
 
-  addRect(0,SH-0.2,SW,0.2,'e0dfd8');
-  addTxt(`${orgName}  ·  GenStudio Org Mapping  ·  ${n_u} practitioners  ·  ${n_b} economic buyers  ·  ${n_s} stakeholders`,
-         0.3,SH-0.19,SW-0.6,0.18,6.5,false,'a0a098','center');
+    function rightSection(title,countText,hdrFill,hdrTc,topY,cardsData,cardFn){
+      addRect(RIGHT_X,topY,RIGHT_W,HALF_H,'FFFFFF','e0ded8',0.3);
+      addRect(RIGHT_X,topY,RIGHT_W,SEC_H,hdrFill);
+      addTxt(title,RIGHT_X+0.15,topY+0.06,RIGHT_W-0.3,0.22,10,true,hdrTc);
+      addTxt(countText,RIGHT_X+0.15,topY+0.25,RIGHT_W-0.3,0.14,9,false,hdrTc);
+      if(!cardsData.length){
+        addTxt('None identified yet.',RIGHT_X+0.2,topY+0.55,RIGHT_W-0.4,0.3,9,false,'b0afa6','left',true);return;
+      }
+      const CH=Math.min((HALF_H-SEC_H-0.14)/cardsData.length-0.08,1.3), CW=RIGHT_W-0.3;
+      cardsData.forEach((item,i)=>cardFn(RIGHT_X+0.15,topY+SEC_H+0.1+i*(CH+0.08),CW,CH,item));
+    }
 
-  pres.writeFile({ fileName: f.orgName.replace(/\s+/g,'_')+'_ORG_MAPPING.pptx' });
+    function ebCard(cx,cy,cw,ch,u){
+      const AV2=Math.min(ch*0.38,0.36);
+      addRect(cx,cy,cw,ch,'FFFDF8','EF9F27',0.5);
+      addOval(cx+0.1,cy+(ch-AV2)/2,AV2,AV2,'FAEEDA','EF9F27');
+      addTxt(initials(u.name||'?'),cx+0.1,cy+(ch-AV2)/2,AV2,AV2,9,true,'633806','center');
+      addTxt(u.name||'—',cx+0.56,cy+0.05,cw-0.64,ch*0.35,10,true,'1a1a18','left',false,true);
+      addTxt(u.title||'',cx+0.56,cy+ch*0.38,cw-0.64,ch*0.3,9,false,'7a7970','left',false,true);
+      const footer=(u.persona||'')+(u.reportsTo?'  ·  Reports to: '+u.reportsTo:'');
+      addTxt(footer,cx+0.1,cy+ch-0.22,cw-0.2,0.2,8,false,'8a7040','left',false,false);
+    }
+
+    function stakeCard(cx,cy,cw,ch,item){
+      const [name,reports]=item, AV2=Math.min(ch*0.38,0.36);
+      addRect(cx,cy,cw,ch,'F8FFFC','5DCAA5',0.5);
+      addOval(cx+0.1,cy+(ch-AV2)/2,AV2,AV2,'E1F5EE','5DCAA5');
+      addTxt(initials(name),cx+0.1,cy+(ch-AV2)/2,AV2,AV2,9,true,'085041','center');
+      addTxt(name,cx+0.56,cy+0.05,cw-0.64,ch*0.35,10,true,'1a1a18','left',false,true);
+      addTxt('Reports: '+reports.join(', '),cx+0.1,cy+ch-0.22,cw-0.2,0.2,8,false,'3a7060','left',false,false);
+    }
+
+    rightSection('ECONOMIC BUYERS',`${n_b} identified`,'FAEEDA','633806',TOP,buyers,ebCard);
+    rightSection('STAKEHOLDERS',`${n_s} identified`,'E1F5EE','085041',TOP+HALF_H+HALF_GAP,stakes,stakeCard);
+  }
+
+  // ── Build slide 1 ────────────────────────────────────────────
+  const s1 = pres.addSlide();
+  drawHeader(s1, 1);
+  drawFooter(s1);
+  drawAdobeTeam(s1);
+  const prac_top_s1 = TOP+AT_BLOCK_H;
+  makeDraw(s1).addTxt('PRACTITIONERS',PRAC_X,prac_top_s1,2.8,LBL_H,9,true,'7a7970');
+  makeDraw(s1).addTxt(`${n_u} user${n_u!==1?'s':''}${users_s2.length?' (continued on slide 2)':''}`,
+                       PRAC_X+2.5,prac_top_s1,5,LBL_H,9,false,'2d5be3');
+  const grid_top_s1=prac_top_s1+LBL_H+0.05;
+  drawStepHeaders(s1, grid_top_s1);
+  const rowPool_s1=PRAC_AVAIL_S1-LBL_H-0.05-0.42;
+  drawUserRows(s1, users_s1, 0, grid_top_s1, calcCellH(users_s1.length, rowPool_s1));
+  drawRightColumn(s1);
+
+  // ── Build slide 2 (overflow) ─────────────────────────────────
+  if(users_s2.length) {
+    const s2 = pres.addSlide();
+    drawHeader(s2, 2);
+    drawFooter(s2);
+    makeDraw(s2).addTxt('PRACTITIONERS (continued)',PRAC_X,TOP,5,LBL_H,9,true,'7a7970');
+    const grid_top_s2=TOP+LBL_H+0.05;
+    drawStepHeaders(s2, grid_top_s2);
+    const rowPool_s2=AVAIL_H-LBL_H-0.05-0.42;
+    drawUserRows(s2, users_s2, users_s1.length, grid_top_s2, calcCellH(users_s2.length, rowPool_s2));
+    drawRightColumn(s2);
+  }
+
+  pres.writeFile({ fileName: orgName.replace(/[^a-zA-Z0-9_\-\s]/g,'').replace(/\s+/g,'_')+'_ORG_MAPPING.pptx' });
 }
 
 document.getElementById('export-ppt-btn').onclick = generatePPT;

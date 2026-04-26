@@ -1,6 +1,6 @@
 {
   "name": "fde-ffs-genstudio-org-viewer-web",
-  "version": "1.0.0",
+  "version": "2.1.0",
   "homepage": ".",
   "scripts": {
     "start": "vite",
