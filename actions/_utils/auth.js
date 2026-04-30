@@ -45,6 +45,7 @@ async function getStoredHash (ns, auth) {
 }
 
 async function validateToken (params) {
+  if (params.GATE_ENABLED !== 'true') return true
   try {
     const token = params.token
     if (!token) return false
