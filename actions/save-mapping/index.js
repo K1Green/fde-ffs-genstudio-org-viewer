@@ -1,4 +1,5 @@
 const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3')
+const { validateToken } = require('../_utils/auth')
 
 const BUCKET = process.env.AWS_BUCKET || 'genstudio-org-mapping'
 
@@ -26,6 +27,9 @@ function toCSV(data) {
 
 async function main(params) {
   try {
+    const valid = await validateToken(params)
+    if (!valid) return respond(401, { error: 'Unauthorized' })
+
     const { key, data } = params
     if (!key) return respond(400, { error: 'key is required' })
     if (data === undefined) return respond(400, { error: 'data is required' })

@@ -300,8 +300,13 @@ body{font-family:'Source Sans 3','Adobe Clean',sans-serif;background:var(--bg);c
 const ACTIONS_BASE = 'https://adobeioruntime.net/api/v1/web/3326322-genstudioorgviewer-stage/genstudio-org-viewer';
 
 document.addEventListener('DOMContentLoaded', () => {
-  document.getElementById('upload-screen').style.display = 'none';
-  loadAllMappings();
+  const token = sessionStorage.getItem('viewer_token');
+  if (token) {
+    document.getElementById('upload-screen').style.display = 'none';
+    loadAllMappings();
+  } else {
+    document.getElementById('pw-gate').style.display = 'flex';
+  }
 });
 
 function mergeGspemEM(adobe, gspemEM) {
@@ -313,13 +318,13 @@ function mergeGspemEM(adobe, gspemEM) {
 // ── Auto-load all mappings from S3 ───────────────────────────
 async function loadAllMappings() {
   try {
-    const listRes = await fetch(`${ACTIONS_BASE}/list-mappings`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({}) });
+    const listRes = await fetch(`${ACTIONS_BASE}/list-mappings`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: sessionStorage.getItem('viewer_token') }) });
     const { mappings } = await listRes.json();
     if (!mappings || mappings.length === 0) { document.getElementById('upload-screen').style.display = ''; return; }
 
     // Load all in parallel (cap at 20 concurrent)
     const results = await Promise.all(mappings.map(async m => {
-      const r = await fetch(`${ACTIONS_BASE}/load-mapping`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ key: m.key }) });
+      const r = await fetch(`${ACTIONS_BASE}/load-mapping`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ key: m.key, token: sessionStorage.getItem('viewer_token') }) });
       const { data } = await r.json();
       if (!data) return null;
       return {
@@ -500,7 +505,7 @@ async function closeFile(i) {
     try {
       await fetch(`${ACTIONS_BASE}/delete-mapping`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ key })
+        body: JSON.stringify({ key, token: sessionStorage.getItem('viewer_token') })
       });
     } catch (e) {
       console.warn('Delete from S3 failed:', e.message);
@@ -1299,7 +1304,7 @@ async function autoSave() {
     const res = await fetch(`${ACTIONS_BASE}/save-mapping`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ key, data: { orgName: f.orgName, gspemEM: f.gspemEM || '', users: f.users, adobe: f.adobe } })
+      body: JSON.stringify({ token: sessionStorage.getItem('viewer_token'), key, data: { orgName: f.orgName, gspemEM: f.gspemEM || '', users: f.users, adobe: f.adobe } })
     });
     const json = await res.json();
     if(json.error) throw new Error(json.error);
@@ -1318,7 +1323,7 @@ async function saveToCloud() {
     const res = await fetch(`${ACTIONS_BASE}/save-mapping`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ key, data: { orgName: f.orgName, gspemEM: f.gspemEM || '', users: f.users, adobe: f.adobe } })
+      body: JSON.stringify({ token: sessionStorage.getItem('viewer_token'), key, data: { orgName: f.orgName, gspemEM: f.gspemEM || '', users: f.users, adobe: f.adobe } })
     });
     const json = await res.json();
     if(json.error) throw new Error(json.error);
@@ -1332,7 +1337,7 @@ async function openCloudLoadModal() {
   const list = document.getElementById('cloud-list');
   list.innerHTML = '<div class="cloud-empty">Loading…</div>';
   try {
-    const res = await fetch(`${ACTIONS_BASE}/list-mappings`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({}) });
+    const res = await fetch(`${ACTIONS_BASE}/list-mappings`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: sessionStorage.getItem('viewer_token') }) });
     const json = await res.json();
     const mappings = json.mappings || [];
     if(!mappings.length) { list.innerHTML = '<div class="cloud-empty">No saved mappings yet.</div>'; return; }
@@ -1351,7 +1356,7 @@ async function openCloudLoadModal() {
 
 async function loadFromCloud(key) {
   try {
-    const res = await fetch(`${ACTIONS_BASE}/load-mapping`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ key }) });
+    const res = await fetch(`${ACTIONS_BASE}/load-mapping`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: sessionStorage.getItem('viewer_token'), key }) });
     const json = await res.json();
     if(!json.data) { showToast('Not found'); return; }
     const { orgName, gspemEM, users: u, adobe: a } = json.data;
@@ -1377,7 +1382,7 @@ async function deleteFromCloud(key, btn) {
     await fetch(`${ACTIONS_BASE}/delete-mapping`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ key })
+      body: JSON.stringify({ token: sessionStorage.getItem('viewer_token'), key })
     });
     btn.closest('.cloud-item').remove();
     const list = document.getElementById('cloud-list');
@@ -1424,7 +1429,7 @@ async function submitChangePassword() {
     const res = await fetch(`${ACTIONS_BASE}/set-password`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ currentPassword: current, newPassword: newPw })
+      body: JSON.stringify({ token: sessionStorage.getItem('viewer_token'), currentPassword: current, newPassword: newPw })
     });
     const json = await res.json();
     if (json.success) {

@@ -1,4 +1,5 @@
 const { S3Client, GetObjectCommand } = require('@aws-sdk/client-s3')
+const { validateToken } = require('../_utils/auth')
 
 function s3(params) {
   return new S3Client({
@@ -15,6 +16,9 @@ async function streamToString(stream) {
 
 async function main(params) {
   try {
+    const valid = await validateToken(params)
+    if (!valid) return respond(401, { error: 'Unauthorized' })
+
     const { key } = params
     if (!key) return respond(400, { error: 'key is required' })
 
